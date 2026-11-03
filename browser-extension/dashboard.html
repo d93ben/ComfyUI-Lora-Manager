@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Our LoRA Bridge</title>
+  <link rel="icon" href="icons/32.png">
+  <link rel="stylesheet" href="dashboard.css">
+  <script type="module" src="dashboard.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand"><img src="icons/48.png" alt="" width="48" height="48"><div><p class="eyebrow">YOUR LOCAL MODEL LIBRARY</p><h1>Our LoRA Bridge</h1></div></div>
+      <a id="library-link" class="button secondary" target="_blank" rel="noopener">Open library ↗</a>
+    </header>
+    <section class="card connection" aria-labelledby="connection-title">
+      <div><h2 id="connection-title">LoRA Manager</h2><p id="connection-status" role="status">Checking connection…</p></div>
+      <details><summary>Connection settings</summary><form id="server-form"><label for="server">Local server</label><div class="input-row"><input id="server" type="url" required spellcheck="false"><button>Save &amp; connect</button></div></form></details>
+    </section>
+    <section class="card" aria-labelledby="model-title">
+      <p class="eyebrow">01 / CHOOSE A MODEL</p><h2 id="model-title">From Civitai to your library</h2>
+      <p>Click the extension on a Civitai model page, or paste a model link below.</p>
+      <form id="model-form"><label for="model-url">Civitai model link</label><div class="input-row"><input id="model-url" type="url" placeholder="https://civitai.com/models/…" required spellcheck="false"><button id="check-button" class="secondary">Check library</button></div></form>
+      <div id="model-details" hidden><h3 id="model-label"></h3><p id="version-label"></p><p id="library-status" role="status"></p><button id="download-button" disabled>Download to library</button><p class="fine">Uses LoRA Manager’s default folder and preferred model file. A version link selects that exact version.</p></div>
+      <p id="notice" class="notice" role="status" aria-live="polite"></p>
+    </section>
+    <section class="card" aria-labelledby="downloads-title">
+      <div class="section-head"><div><p class="eyebrow">02 / FOLLOW YOUR DOWNLOADS</p><h2 id="downloads-title">Downloads from this extension</h2></div><button id="refresh-button" class="secondary">Refresh</button></div>
+      <p class="fine">Keep this tab open while downloading. You can browse in other tabs. Closing or reloading it may interrupt tracking or a transfer.</p>
+      <p id="downloads-status" role="status"></p><div id="downloads"></div>
+    </section>
+    <footer>Local connection only · Your Civitai key stays in LoRA Manager.<br>For gated downloads, add your key in the library’s Settings. This extension never reads or stores it.<br><a href="https://github.com/d93ben/ComfyUI-Lora-Manager/tree/main/browser-extension" target="_blank" rel="noopener">Source &amp; setup guide</a> · Version 0.1.0</footer>
+  </main>
+</body>
+</html>
