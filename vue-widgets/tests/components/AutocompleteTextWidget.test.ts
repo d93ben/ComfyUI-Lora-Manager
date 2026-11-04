@@ -39,6 +39,32 @@ afterEach(() => {
   delete (document as unknown as { execCommand?: unknown }).execCommand
 })
 
+describe('LoRA library picker', () => {
+  it('keeps library updates serializable while syntax is collapsed', async () => {
+    const widget = createMockWidget()
+    const onBrowse = vi.fn()
+    const wrapper = shallowMount(AutocompleteTextWidget, {
+      props: { widget, node: { id: 63 }, modelType: 'loras', onBrowse },
+      attachTo: document.body,
+    })
+    const textarea = wrapper.find('textarea')
+    expect(textarea.isVisible()).toBe(false)
+    await wrapper.find('.browse-loras').trigger('click')
+    expect(onBrowse).toHaveBeenCalledOnce()
+    const input = widget.inputEl as unknown as HTMLTextAreaElement
+    input.value = '<lora:anima/style:0.7>'
+    input.dispatchEvent(new CustomEvent('lora-manager:autocomplete-value-changed', {
+      detail: { value: input.value },
+    }))
+    await nextTick()
+    expect((widget.inputEl as unknown as HTMLTextAreaElement).value).toBe('<lora:anima/style:0.7>')
+    await wrapper.find('.syntax-toggle').trigger('click')
+    expect(textarea.isVisible()).toBe(true)
+    expect((textarea.element as HTMLTextAreaElement).value).toBe('<lora:anima/style:0.7>')
+    wrapper.unmount()
+  })
+})
+
 describe('AutocompleteTextWidget clear button', () => {
   it('is hidden when the textarea is empty and appears once text is entered', async () => {
     const { wrapper } = mountWidget()

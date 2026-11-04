@@ -49,6 +49,8 @@ import { getPoolConfigFromConnectedNode, getActiveLorasFromNode, updateConnected
 import { stripAutocompleteMetadataFromPromptResult } from '../../web/comfyui/autocomplete.js'
 // @ts-ignore
 import { ensureLmStyles } from '../../web/comfyui/lm_styles_loader.js'
+// @ts-ignore - shared ComfyUI sidebar module, externalized by Vite
+import { openLoraLibrary } from '../../web/comfyui/lora_library_sidebar.js'
 
 // Strip the autocomplete lastAccepted boundary from exported workflows.
 // lastAccepted carries old prompt text (insertedText/textSnapshot) and is
@@ -885,7 +887,8 @@ function createAutocompleteTextWidgetFactory(
     placeholder: inputOptions.placeholder || widgetName,
     showPreview: true,
     spellcheck,
-    maxHeight
+    maxHeight,
+    onBrowse: modelType === 'loras' ? () => openLoraLibrary(node, widget) : undefined
   })
 
   vueApp.use(PrimeVue, {

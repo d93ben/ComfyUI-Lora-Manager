@@ -1,0 +1,44 @@
+.lm-library-sidebar {
+  position: fixed; top: 64px; right: 0; bottom: 0; width: min(540px, 95vw);
+  z-index: 1001; display: flex; flex-direction: column; box-sizing: border-box;
+  background: var(--lm-surface); color: var(--lm-fg);
+  border-left: 1px solid var(--lm-border); box-shadow: var(--lm-shadow-lg);
+  font: 13px/1.45 system-ui, sans-serif;
+}
+.lm-library-sidebar * { box-sizing: border-box; }
+.lm-library-heading { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 18px 10px; }
+.lm-library-heading h2 { font-size: 19px; margin: 0 0 4px; }
+.lm-library-heading p { margin: 0; color: var(--lm-fg-muted); }
+.lm-library-sidebar button, .lm-library-sidebar input, .lm-library-sidebar select {
+  color: inherit; font: inherit; background: var(--lm-surface-raised);
+  border: 1px solid var(--lm-border); border-radius: 6px; padding: 8px 10px;
+}
+.lm-library-sidebar button { cursor: pointer; }
+.lm-library-sidebar button:disabled { cursor: default; opacity: .7; }
+.lm-library-sidebar button:hover:not(:disabled), .lm-library-sidebar a:hover { border-color: var(--lm-accent); }
+.lm-library-sidebar :focus-visible { outline: 2px solid var(--lm-accent); outline-offset: 2px; }
+.lm-library-heading > button { border: 0; background: transparent; font-size: 24px; padding: 0 6px; }
+.lm-library-controls { padding: 0 18px; }
+.lm-library-tabs { display: flex; gap: 4px; padding: 3px; background: var(--lm-surface-raised); border-radius: 8px; }
+.lm-library-tabs button { flex: 1; background: transparent; border-color: transparent; }
+.lm-library-tabs button[aria-selected="true"] { background: var(--lm-surface-selected); color: var(--lm-fg); border-color: var(--lm-accent-border); }
+.lm-library-reason { margin: 8px 0 10px; color: var(--lm-fg-muted); overflow-wrap: anywhere; }
+.lm-library-controls > input { width: 100%; }
+.lm-library-filters { display: flex; gap: 12px; align-items: center; margin-top: 10px; }
+.lm-library-filters select { flex: 1; min-width: 0; }
+.lm-library-filters select[hidden] { display: none; }
+.lm-library-favorite { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.lm-library-status { padding: 0 18px; margin: 12px 0; min-height: 20px; color: var(--lm-fg-muted); }
+.lm-library-grid { overflow-y: auto; flex: 1; min-height: 0; padding: 0 18px 18px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; align-content: start; }
+.lm-library-card { border: 1px solid var(--lm-border); border-radius: 9px; overflow: hidden; display: flex; flex-direction: column; background: var(--lm-surface-raised); }
+.lm-library-card .lm-library-add { display: flex; flex: 1; flex-direction: column; align-items: stretch; padding: 0; border: 0; border-radius: 0; text-align: left; background: transparent; }
+.lm-library-add:disabled { opacity: 1; }
+.lm-library-preview { height: 150px; background: var(--lm-surface); display: grid; place-items: center; overflow: hidden; color: var(--lm-fg-subtle); }
+.lm-library-preview img, .lm-library-preview video { width: 100%; height: 100%; object-fit: cover; }
+.lm-library-add strong { margin: 10px 10px 5px; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.lm-library-base, .lm-library-file { display: block; margin: 0 10px 6px; color: var(--lm-fg-muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.lm-library-file { font-size: 10px; }
+.lm-library-add-label { margin: auto 10px 10px; padding: 6px; text-align: center; background: var(--lm-surface-selected); color: var(--lm-accent-text); border-radius: 5px; }
+.lm-library-add:disabled .lm-library-add-label { background: color-mix(in srgb, var(--lm-ok) 14%, var(--lm-surface)); color: var(--lm-ok); }
+.lm-library-info { padding: 8px 10px; text-align: center; border-top: 1px solid var(--lm-border); color: var(--lm-accent-text); text-decoration: none; }
+.lm-library-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--lm-border); padding: 12px 18px; }

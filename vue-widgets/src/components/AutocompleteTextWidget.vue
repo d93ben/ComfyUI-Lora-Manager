@@ -1,6 +1,16 @@
 <template>
   <div class="autocomplete-text-widget">
+    <div v-if="modelType === 'loras'" class="library-picker">
+      <div class="library-picker-actions">
+        <button type="button" class="library-picker-button browse-loras" @click="onBrowse?.()">Browse LoRAs</button>
+        <button type="button" class="library-picker-button syntax-toggle" :aria-expanded="showSyntax" @click="showSyntax = !showSyntax">
+          {{ showSyntax ? 'Hide code' : 'Show code' }}
+        </button>
+      </div>
+      <small v-if="!showSyntax">Browse and add from the right sidebar. Adjust strengths below.</small>
+    </div>
     <div
+      v-show="modelType !== 'loras' || showSyntax"
       ref="inputWrapperRef"
       class="input-wrapper"
       :style="{ '--lm-vscrollbar-width': vScrollbarWidth + 'px' }"
@@ -54,7 +64,12 @@ const props = defineProps<{
   showPreview?: boolean
   spellcheck?: boolean
   maxHeight?: number
+  onBrowse?: () => void
 }>()
+
+// Keep the textarea mounted: it remains the serialized value and receives
+// updates from the library picker while its raw syntax is collapsed.
+const showSyntax = ref(false)
 
 // Reactive ref for Vue DOM mode
 const isVueDomMode = ref(typeof LiteGraph !== 'undefined' && LiteGraph.vueNodesMode === true)
@@ -353,6 +368,40 @@ onUnmounted(() => {
   flex: 1;
   display: flex;
   width: 100%;
+}
+
+.library-picker {
+  padding: 6px;
+  color: var(--lm-fg);
+  font: 12px sans-serif;
+}
+
+.library-picker-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.library-picker-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  border: 1px solid var(--lm-border, #555);
+  border-radius: 5px;
+  background: var(--lm-surface);
+  color: var(--lm-fg);
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.library-picker-button:hover {
+  border-color: var(--lm-accent);
+}
+
+.syntax-toggle {
+  margin-left: auto;
 }
 
 /* Theme tokens (--lm-*) come from the widget container, which ComfyUI's

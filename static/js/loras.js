@@ -56,6 +56,27 @@ export async function initializeLoraPage() {
     const loraPage = new LoraPageManager();
     await loraPage.initialize();
 
+    // A workflow sidebar Info link opens the exact local copy in the full manager.
+    const params = new URLSearchParams(window.location.search);
+    const filePath = params.get('model');
+    if (filePath) {
+        const query = new URLSearchParams({ page_size: '100' });
+        if (params.get('hash')) query.set('hash', params.get('hash'));
+        else query.set('search', filePath.split(/[/\\]/).pop());
+        try {
+            const response = await fetch(`/api/lm/loras/list?${query}`);
+            if (!response.ok) throw new Error(`Library request failed (${response.status})`);
+            const data = await response.json();
+            const model = data.items.find(item => item.file_path.replaceAll('\\', '/') === filePath.replaceAll('\\', '/'));
+            if (model) {
+                const { showModelModal } = await import('./components/shared/ModelModal.js');
+                await showModelModal(model, 'loras');
+            }
+        } catch (error) {
+            console.warn('Could not open linked LoRA details:', error);
+        }
+    }
+
     return loraPage;
 }
 

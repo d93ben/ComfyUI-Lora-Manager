@@ -43,6 +43,9 @@ export default defineConfig({
             name: 'lora-manager:keep-runtime-modules-external',
             enforce: 'pre',
             resolveId(source, importer) {
+                if (importer && /[\\/]web[\\/]comfyui[\\/]lora_library_sidebar\.js$/.test(resolve(dirname(importer), source))) {
+                    return { id: '../lora_library_sidebar.js', external: true }
+                }
                 const scriptsMatch = source.match(/^(\.\.\/)+scripts\/(app|api)\.js$/)
                 if (scriptsMatch) {
                     return { id: `../../../scripts/${scriptsMatch[2]}.js`, external: true }

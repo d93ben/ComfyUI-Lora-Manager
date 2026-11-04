@@ -2,6 +2,8 @@
 
 > **d93ben fork:** includes [Our LoRA Bridge](browser-extension/README.md), our original Chrome extension for local-library checks and model downloads. Extension source and installation instructions are in [`browser-extension/`](browser-extension/). The upstream LoRA Manager documentation continues below.
 
+On a LoRA Manager loader, click **Browse LoRAs** to open the right sidebar. **Recommended** follows the node's model connection and shows installed LoRAs tagged for that base family. For a recognized Wan noise stage, it also matches the high or low tag. **All** opens the full library and is the default when the base is unknown. Click a card to add it to that loader, or **Info** to open its full details.
+
 > **Revolutionize your workflow with the ultimate LoRA companion for ComfyUI!**
 
 [![Discord](https://img.shields.io/discord/1346296675538571315?color=7289DA&label=Discord&logo=discord&logoColor=white)](https://discord.gg/vcqNrWVFvM)
