@@ -20,6 +20,33 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+function mockLibrary(list) {
+  const fetchSettings = fetch.getMockImplementation();
+  fetch.mockImplementation((url, options) => {
+    if (url.includes('/loader-pool?')) return { ok: true, json: async () => ({ items: [] }) };
+    if (!url.includes('/loras/list?')) return fetchSettings(url, options);
+    return list(new URL(url, 'http://localhost').searchParams, options);
+  });
+}
+
+function pageResponse(page, total) {
+  const start = (page - 1) * 24;
+  const items = Array.from({ length: Math.min(24, total - start) }, (_, offset) => {
+    const name = `style-${start + offset + 1}`;
+    return { ...model, model_name: name, file_name: name, file_path: `/loras/${name}.safetensors` };
+  });
+  return { ok: true, json: async () => ({ total, items, total_pages: Math.ceil(total / 24) }) };
+}
+
+function scrollToLastRow(grid) {
+  Object.defineProperties(grid, {
+    clientHeight: { configurable: true, value: 650 },
+    scrollHeight: { configurable: true, get: () => Math.ceil(grid.childElementCount / 2) * 336 },
+  });
+  grid.scrollTop = grid.scrollHeight - grid.clientHeight;
+  grid.dispatchEvent(new Event('scroll'));
+}
+
 describe('LoRA sidebar selection', () => {
   it('adds a folder-qualified LoRA and preserves existing strengths', () => {
     expect(addLibraryLora(node, widget, model)).toBe(true);
@@ -71,5 +98,70 @@ describe('LoRA sidebar selection', () => {
     document.querySelector('.lm-library-add').click();
     expect(widget.value).toContain('<lora:anima/style:0.7:0.6>');
     expect(document.querySelector('.lm-library-add').disabled).toBe(true);
+  });
+  it.each(['Recommended', 'All'])('scrolls to the last card in %s without replacing earlier rows', async view => {
+    node.inputs = [{ name: 'model', type: 'MODEL', link: 4 }];
+    node.getInputNode = () => ({ widgets: [{ name: 'unet_name', value: 'anima/test.safetensors' }] });
+    const requests = [];
+    mockLibrary(query => {
+      const page = Number(query.get('page'));
+      requests.push([query.get('base_model'), page]);
+      return pageResponse(page, 75);
+    });
+    openLoraLibrary(node, widget);
+    const grid = document.querySelector('#lm-library-results');
+    await vi.waitFor(() => expect(grid.children).toHaveLength(24));
+    if (view === 'All') {
+      requests.length = 0;
+      document.querySelector('#lm-library-tab-All').click();
+      await vi.waitFor(() => expect(grid.children).toHaveLength(24));
+    }
+    const first = grid.firstElementChild;
+    for (const count of [48, 72, 75]) {
+      scrollToLastRow(grid);
+      grid.dispatchEvent(new Event('scroll')); // multiple notifications while the same page loads
+      const position = grid.scrollTop;
+      await vi.waitFor(() => expect(grid.children).toHaveLength(count));
+      expect(grid.firstElementChild).toBe(first);
+      expect(grid.scrollTop).toBe(position);
+    }
+    scrollToLastRow(grid);
+    expect(requests).toEqual([1, 2, 3, 4].map(page => [view === 'All' ? null : 'Anima', page]));
+    expect(grid.lastElementChild.querySelector('strong').textContent).toBe('style-75');
+  });
+  it('keeps the current cards and retries the failed continuation', async () => {
+    let fail = true;
+    mockLibrary(query => {
+      const page = Number(query.get('page'));
+      if (page === 2 && fail) { fail = false; return { ok: false, status: 503 }; }
+      return pageResponse(page, 26);
+    });
+    openLoraLibrary(node, widget);
+    const grid = document.querySelector('#lm-library-results');
+    await vi.waitFor(() => expect(grid.children).toHaveLength(24));
+    scrollToLastRow(grid);
+    const retry = document.querySelector('.lm-library-retry');
+    await vi.waitFor(() => expect(retry.hidden).toBe(false));
+    expect(grid.children).toHaveLength(24);
+    retry.click();
+    await vi.waitFor(() => expect(grid.children).toHaveLength(26));
+    expect(retry.hidden).toBe(true);
+  });
+  it('discards an old continuation when the filter changes', async () => {
+    let release;
+    mockLibrary(query => {
+      if (query.get('page') === '2') return new Promise(resolve => { release = resolve; });
+      return pageResponse(1, query.get('favorites_only') === 'true' ? 1 : 26);
+    });
+    openLoraLibrary(node, widget);
+    const grid = document.querySelector('#lm-library-results');
+    await vi.waitFor(() => expect(grid.children).toHaveLength(24));
+    scrollToLastRow(grid);
+    document.querySelector('.lm-library-favorite input').click();
+    await vi.waitFor(() => expect(grid.children).toHaveLength(1));
+    release(pageResponse(2, 26));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(grid.children).toHaveLength(1);
+    expect(grid.scrollTop).toBe(0);
   });
 });

@@ -108,19 +108,22 @@ export function openLoraLibrary(node, widget) {
   controls.append(tabs, reason, search, filters);
   const status = element("p", "lm-library-status", "Loading library…");
   status.setAttribute("role", "status");
+  const retry = element("button", "lm-library-retry", "Retry");
+  retry.type = "button";
+  retry.hidden = true;
+  retry.onclick = () => { retry.hidden = true; loadNextPage(); };
+  const feedback = element("div", "lm-library-feedback");
+  feedback.append(status, retry);
   const grid = element("div", "lm-library-grid");
   grid.id = "lm-library-results";
+  grid.tabIndex = 0;
   grid.setAttribute("role", "tabpanel");
-  const footer = element("footer", "lm-library-footer");
-  const previous = element("button", "", "Previous");
-  const next = element("button", "", "Next");
-  const pageLabel = element("span");
-  footer.append(previous, pageLabel, next);
-  panel.append(header, controls, status, grid, footer);
+  panel.append(header, controls, feedback, grid);
   document.body.append(panel);
 
-  let page = 1;
-  let pageCount = 1;
+  let nextPage = 0;
+  let filtersQuery;
+  const shownPaths = new Set();
   let requestController = null;
   let searchTimer = null;
   let modelTimer = null;
@@ -132,6 +135,8 @@ export function openLoraLibrary(node, widget) {
   let disposed = false;
   let previewSettings = { blur_mature_content: true, mature_blur_level: "R" };
   const lifetime = new AbortController();
+  grid.addEventListener("scroll", loadIfNearEnd, { passive: true });
+  window.addEventListener("resize", loadIfNearEnd);
   function dismiss() {
     disposed = true;
     clearTimeout(searchTimer);
@@ -139,6 +144,7 @@ export function openLoraLibrary(node, widget) {
     requestController?.abort();
     lifetime.abort();
     panel.remove();
+    window.removeEventListener("resize", loadIfNearEnd);
     document.removeEventListener("keydown", onKey);
     closeSidebar = null;
   }
@@ -197,43 +203,68 @@ export function openLoraLibrary(node, widget) {
     return card;
   }
 
-  async function load() {
+  function reset() {
+    clearTimeout(searchTimer);
     requestController?.abort();
+    requestController = null;
+    nextPage = 0;
+    shownPaths.clear();
     grid.replaceChildren();
-    pageLabel.textContent = "";
-    previous.disabled = next.disabled = true;
+    grid.scrollTop = 0;
+    retry.hidden = true;
     if (!pools) return;
     if (view === "Recommended" && !recommendation) {
       status.textContent = "Open All to browse the library.";
       return;
     }
+    status.textContent = "Loading library…";
+    filtersQuery = new URLSearchParams({ page_size: "24", search: search.value.trim(), search_tags: "true", favorites_only: String(favorites.checked) });
+    if (view === "Recommended") {
+      filtersQuery.set("base_model", recommendation.family);
+      if (recommendation.stage) filtersQuery.set("auto_tag_include", recommendation.stage);
+    } else if (family.value) filtersQuery.set("base_model", family.value);
+    nextPage = 1;
+    loadNextPage();
+  }
+  function loadIfNearEnd() {
+    if (grid.clientHeight && grid.scrollHeight - grid.scrollTop - grid.clientHeight <= 480) loadNextPage();
+  }
+  async function loadNextPage() {
+    if (disposed || !nextPage || requestController || !retry.hidden) return;
     const controller = new AbortController();
     requestController = controller;
-    status.textContent = "Loading library…";
-    const query = new URLSearchParams({ page: String(page), page_size: "24", search: search.value.trim(), search_tags: "true", favorites_only: String(favorites.checked) });
-    if (view === "Recommended") {
-      query.set("base_model", recommendation.family);
-      if (recommendation.stage) query.set("auto_tag_include", recommendation.stage);
-    } else if (family.value) query.set("base_model", family.value);
+    const query = new URLSearchParams(filtersQuery);
+    query.set("page", String(nextPage));
     try {
       const data = await getJson(`/api/lm/loras/list?${query}`, controller.signal);
       if (disposed || controller.signal.aborted) return;
-      grid.replaceChildren(...data.items.map(renderCard));
-      grid.scrollTop = 0;
-      pageCount = Math.max(1, data.total_pages);
-      pageLabel.textContent = `${page} / ${pageCount}`;
-      status.textContent = data.total ? `${data.total} ${data.total === 1 ? "LoRA" : "LoRAs"} · Click a card to add it`
-        : view === "Recommended" ? "No matching LoRAs. Try All for more options." : "No matching LoRAs. Try another search or base model.";
-      previous.disabled = page <= 1;
-      next.disabled = page >= pageCount;
-    } catch (error) {
-      if (error.name !== "AbortError" && !disposed) {
-        grid.replaceChildren();
-        status.textContent = error.message;
+      const cards = document.createDocumentFragment();
+      const newPaths = new Set();
+      for (const model of data.items) {
+        if (shownPaths.has(model.file_path) || newPaths.has(model.file_path)) continue;
+        cards.append(renderCard(model));
+        newPaths.add(model.file_path);
       }
+      grid.append(cards);
+      for (const path of newPaths) shownPaths.add(path);
+      nextPage = data.items.length && nextPage < data.total_pages ? nextPage + 1 : 0;
+      if (nextPage) {
+        status.textContent = `${shownPaths.size} of ${data.total} LoRAs · Scroll for more`;
+      } else if (shownPaths.size) {
+        status.textContent = `${shownPaths.size} ${shownPaths.size === 1 ? "LoRA" : "LoRAs"} · Click a card to add it`;
+      } else {
+        status.textContent = view === "Recommended" ? "No matching LoRAs. Try All for more options." : "No matching LoRAs. Try another search or base model.";
+      }
+    } catch (error) {
+      if (!controller.signal.aborted && !disposed) {
+        status.textContent = error.message;
+        retry.hidden = false;
+      }
+    } finally {
+      if (requestController === controller) requestController = null;
     }
+    if (!controller.signal.aborted) loadIfNearEnd();
   }
-  function reset() { page = 1; load(); }
   function changeView(nextView) {
     view = nextView;
     for (const tab of tabs.children) {
@@ -261,8 +292,6 @@ export function openLoraLibrary(node, widget) {
   }
   search.oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(reset, 250); };
   family.onchange = favorites.onchange = reset;
-  previous.onclick = () => { page--; load(); };
-  next.onclick = () => { page++; load(); };
   search.focus();
   // A missing catalog should not prevent browsing the library or matching a named family.
   const getPool = kind => getJson(`/api/lm/checkpoints/loader-pool?sub_type=${kind}`, lifetime.signal)
